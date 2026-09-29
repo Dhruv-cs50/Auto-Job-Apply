@@ -15,6 +15,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
+import { listPriorityJobs } from "@/db/jobs";
 import {
   Table,
   TableBody,
@@ -24,7 +25,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 
-const applications = [
+const demoApplications = [
   {
     company: "Aurora Mobility",
     role: "Data Scientist, Forecasting",
@@ -87,13 +88,6 @@ const applications = [
   },
 ];
 
-const stats = [
-  { label: "Fresh in last 24h", value: "12", note: "Pinned first", icon: Clock3 },
-  { label: "Strong matches", value: "18", note: "+6 today", icon: Sparkles },
-  { label: "Awaiting review", value: "7", note: "3 high priority", icon: CalendarClock },
-  { label: "Submitted", value: "24", note: "8 this week", icon: FileCheck2 },
-];
-
 const pipeline = [
   { label: "Discovered", count: 48, percent: 100 },
   { label: "Strong fit", count: 18, percent: 38 },
@@ -105,7 +99,50 @@ function StatusBadge({ tone, children }: { tone: string; children: React.ReactNo
   return <Badge className={`status-badge status-${tone}`}>{children}</Badge>;
 }
 
-export default function Home() {
+const statusPresentation: Record<string, { label: string; tone: string }> = {
+  discovered: { label: "Discovered", tone: "discovered" },
+  ready_to_review: { label: "Ready to review", tone: "review" },
+  approved: { label: "Approved", tone: "approved" },
+  submitted: { label: "Submitted", tone: "submitted" },
+  needs_answer: { label: "Needs answer", tone: "blocked" },
+};
+
+const sourcePresentation: Record<string, string> = {
+  jobright: "Jobright",
+  linkedin_alert: "LinkedIn alert",
+  greenhouse: "Greenhouse",
+  lever: "Lever",
+  company_site: "Company site",
+};
+
+function postedLabel(postedAt: string | null) {
+  if (!postedAt) return "Posting time unknown";
+  const ageHours = Math.max(0, Math.floor((Date.now() - new Date(postedAt).getTime()) / 3_600_000));
+  return ageHours < 24 ? `${ageHours || 1}h ago` : `${Math.floor(ageHours / 24)}d ago`;
+}
+
+export default async function Home() {
+  const storedJobs = await listPriorityJobs(25).catch(() => []);
+  const applications = storedJobs.length
+    ? storedJobs.map((job) => ({
+        company: job.company,
+        role: job.title,
+        location: job.location,
+        source: sourcePresentation[job.source] ?? job.source,
+        posted: postedLabel(job.postedAt),
+        fresh: job.fresh,
+        score: job.fitScore,
+        status: statusPresentation[job.status]?.label ?? job.status,
+        tone: statusPresentation[job.status]?.tone ?? "discovered",
+        next: job.nextAction,
+      }))
+    : demoApplications;
+  const stats = [
+    { label: "Fresh in last 24h", value: String(applications.filter((job) => job.fresh).length), note: "Pinned first", icon: Clock3 },
+    { label: "Strong matches", value: String(applications.filter((job) => job.score >= 85).length), note: "Fit score 85+", icon: Sparkles },
+    { label: "Awaiting review", value: String(applications.filter((job) => ["Ready to review", "Needs answer"].includes(job.status)).length), note: "Needs attention", icon: CalendarClock },
+    { label: "Submitted", value: String(applications.filter((job) => job.status === "Submitted").length), note: "Tracked", icon: FileCheck2 },
+  ];
   return (
     <main className="min-h-screen bg-background text-foreground">
       <header className="topbar">
