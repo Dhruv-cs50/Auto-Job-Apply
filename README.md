@@ -1,4 +1,29 @@
-# vinext-starter
+# Job Application Command Center
+
+A private dashboard and workflow foundation for discovering, ranking, reviewing, and tracking job applications.
+
+The current release includes:
+
+- a responsive application dashboard;
+- Jobright and LinkedIn-alert source labels;
+- deterministic last-24-hours priority ordering;
+- a D1 schema for candidate profiles, jobs, applications, and discovery runs;
+- an ingestion API for normalized job records; and
+- conservative submission guardrails.
+
+See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for the workflow and source boundaries.
+
+## Development
+
+```bash
+npm install
+npm run db:generate
+npm run dev
+```
+
+The repository intentionally contains no credentials, résumé files, browser cookies, or API keys.
+
+## Starter runtime notes
 
 A clean full-stack starter running on [vinext](https://github.com/cloudflare/vinext), with optional Cloudflare D1 and Drizzle support.
 
