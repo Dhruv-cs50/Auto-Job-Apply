@@ -5,5 +5,7 @@ delegation:
   max_spawn_depth: 2
   oneshot_max_children: 4
   orchestrator_enabled: true
-  worktree_isolation: true
+  # Enable on normal local Git checkouts. This relocated macOS checkout times out
+  # during worktree creation, so its active user config leaves this disabled.
+  worktree_isolation: false
   subagent_auto_approve: false

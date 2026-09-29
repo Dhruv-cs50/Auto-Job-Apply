@@ -6,7 +6,7 @@ This repository builds a private, human-supervised job discovery and application
 
 - Read `docs/ARCHITECTURE.md` before changing workflow boundaries.
 - Delegate independent tasks to specialized child agents, capped at three concurrent children and two levels of nesting.
-- Use isolated worktrees for delegated code changes and review every child result before integration.
+- Prefer isolated worktrees when the checkout supports them. If worktree creation is slow or unavailable, delegate non-overlapping file scopes in the shared checkout and let the parent serialize integration points.
 - Make small, coherent Git commits. Never push or deploy without explicit approval.
 - Run tests, lint, and build before declaring a slice complete.
 - Do not commit secrets, cookies, resumes, or raw personal data.

@@ -9,7 +9,7 @@ Use `delegate_task(tasks=[...])` to run independent work in parallel. Spawn sepa
 3. application workflow, approval gates, dashboard persistence, and browser-worker contracts;
 4. tests, CI, deployment/runbooks, and security review.
 
-Give each child a narrow file scope and require tests. Use isolated worktrees when available. The parent must review all results, resolve overlap, run the complete verification suite, and make small coherent commits. Do not push, deploy, install software, create cloud resources, or store credentials without explicit user approval.
+Give each child a narrow, non-overlapping file scope and require tests. Call `delegate_task` directly; do not manually create Git worktrees. This checkout has already timed out while creating worktrees, so use the shared directory and keep integration files owned by the parent. The parent must review all results, resolve overlap, run the complete verification suite, and make small coherent commits. Do not push, deploy, install software, create cloud resources, or store credentials without explicit user approval.
 
 Hard constraints:
 
