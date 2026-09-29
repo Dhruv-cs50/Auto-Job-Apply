@@ -10,6 +10,7 @@ const jobInput = z.object({
   company: z.string().min(1).max(200),
   title: z.string().min(1).max(240),
   location: z.string().max(240).default(""),
+  description: z.string().max(100_000).default(""),
   postedAt: z.string().datetime().nullable(),
   discoveredAt: z.string().datetime(),
   fitScore: z.number().int().min(0).max(100),

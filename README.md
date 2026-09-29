@@ -9,9 +9,11 @@ The current release includes:
 - deterministic last-24-hours priority ordering;
 - a D1 schema for candidate profiles, jobs, applications, and discovery runs;
 - an ingestion API for normalized job records; and
+- an optional Hermes Agent orchestration path with bounded subagent delegation; and
 - conservative submission guardrails.
 
 See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for the workflow and source boundaries.
+See [`docs/HERMES.md`](docs/HERMES.md) for Hermes setup and production topology.
 
 ## Development
 

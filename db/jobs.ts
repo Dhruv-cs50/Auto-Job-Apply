@@ -9,6 +9,7 @@ export type StoredJob = {
   company: string;
   title: string;
   location: string;
+  description: string;
   postedAt: string | null;
   discoveredAt: string;
   fitScore: number;
@@ -25,6 +26,7 @@ type JobRow = {
   company: string;
   title: string;
   location: string;
+  description: string;
   posted_at: string | null;
   discovered_at: string;
   fit_score: number;
@@ -47,6 +49,7 @@ function mapJob(row: JobRow): StoredJob {
     company: row.company,
     title: row.title,
     location: row.location,
+    description: row.description,
     postedAt: row.posted_at,
     discoveredAt: row.discovered_at,
     fitScore: row.fit_score,
@@ -58,13 +61,22 @@ function mapJob(row: JobRow): StoredJob {
 
 export async function listPriorityJobs(limit = 50): Promise<Array<StoredJob & { fresh: boolean }>> {
   const result = await database().prepare(`
-    SELECT id, source, source_job_id, url, company, title, location, posted_at,
+    SELECT id, source, source_job_id, url, company, title, location, description, posted_at,
            discovered_at, fit_score, fit_explanation, status, next_action
     FROM job_listings
     WHERE status != 'archived'
-    ORDER BY fit_score DESC, posted_at DESC
+    ORDER BY
+      CASE
+        WHEN posted_at IS NOT NULL
+          AND julianday(posted_at) >= julianday('now', '-24 hours')
+          AND julianday(posted_at) <= julianday('now')
+        THEN 0
+        ELSE 1
+      END,
+      fit_score DESC,
+      posted_at DESC
     LIMIT ?
-  `).bind(Math.max(limit * 4, 100)).all<JobRow>();
+  `).bind(limit).all<JobRow>();
 
   return sortJobsByPriority(result.results.map(mapJob))
     .slice(0, limit)
@@ -74,14 +86,15 @@ export async function listPriorityJobs(limit = 50): Promise<Array<StoredJob & { 
 export async function upsertJob(job: StoredJob): Promise<void> {
   await database().prepare(`
     INSERT INTO job_listings (
-      id, source, source_job_id, url, company, title, location, posted_at,
+      id, source, source_job_id, url, company, title, location, description, posted_at,
       discovered_at, fit_score, fit_explanation, status, next_action, updated_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
     ON CONFLICT(source, source_job_id) DO UPDATE SET
       url = excluded.url,
       company = excluded.company,
       title = excluded.title,
       location = excluded.location,
+      description = excluded.description,
       posted_at = excluded.posted_at,
       fit_score = excluded.fit_score,
       fit_explanation = excluded.fit_explanation,
@@ -96,6 +109,7 @@ export async function upsertJob(job: StoredJob): Promise<void> {
     job.company,
     job.title,
     job.location,
+    job.description,
     job.postedAt,
     job.discoveredAt,
     job.fitScore,
