@@ -56,7 +56,7 @@ export const applications = sqliteTable("applications", {
   createdAt: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
   updatedAt: text("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
 }, (table) => [
-  uniqueIndex("idx_applications_job_id").on(table.jobId),
+  uniqueIndex("idx_applications_owner_job_id").on(table.ownerId, table.jobId),
   index("idx_applications_status").on(table.status),
   index("idx_applications_owner_status").on(table.ownerId, table.status),
   uniqueIndex("idx_applications_idempotency_key").on(table.idempotencyKey),

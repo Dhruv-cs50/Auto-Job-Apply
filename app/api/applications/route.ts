@@ -1,0 +1,9 @@
+import { NextResponse } from "next/server";
+import { z } from "zod";
+import { getChatGPTUser } from "@/app/chatgpt-auth";
+import { ApplicationConflictError, createApplication, listApplications } from "@/db/applications";
+const answerSetSchema=z.object({answers:z.record(z.string(),z.union([z.string().max(20_000),z.number(),z.boolean()])),unansweredFields:z.array(z.string().min(1).max(500)).max(500)});
+const createSchema=z.object({jobId:z.string().min(1).max(200),idempotencyKey:z.string().min(1).max(200),answerSet:answerSetSchema.optional(),notes:z.string().max(10_000).optional()});
+export const dynamic="force-dynamic";
+export async function GET(request:Request){const user=await getChatGPTUser();if(!user)return NextResponse.json({error:"Authentication required."},{status:401});const requested=Number(new URL(request.url).searchParams.get("limit")??50);const limit=Number.isFinite(requested)?Math.min(Math.max(requested,1),200):50;try{return NextResponse.json({applications:await listApplications(user.userId,limit)})}catch(error){console.error("Unable to list applications",error);return NextResponse.json({error:"Applications are temporarily unavailable."},{status:503})}}
+export async function POST(request:Request){const user=await getChatGPTUser();if(!user)return NextResponse.json({error:"Authentication required."},{status:401});try{const parsed=createSchema.safeParse(await request.json());if(!parsed.success)return NextResponse.json({error:"Invalid application",issues:parsed.error.issues},{status:400});const application=await createApplication({ownerId:user.userId,...parsed.data});return NextResponse.json({application},{status:201})}catch(error){if(error instanceof ApplicationConflictError)return NextResponse.json({error:error.message},{status:409});console.error("Unable to create application",error);return NextResponse.json({error:"The application could not be created."},{status:503})}}
