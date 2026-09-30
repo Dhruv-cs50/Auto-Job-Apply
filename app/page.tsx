@@ -166,7 +166,7 @@ export default async function Home() {
               <BriefcaseBusiness /> Applications <span className="nav-count">7</span>
             </a>
             <a className="nav-item" href="#schedule"><CalendarClock /> Schedule</a>
-            <a className="nav-item" href="#profile"><FileCheck2 /> Candidate profile</a>
+            <a className="nav-item" href="/profile"><FileCheck2 /> Candidate profile</a>
           </nav>
           <div className="sidebar-note">
             <div className="sidebar-note-icon"><Check size={15} /></div>

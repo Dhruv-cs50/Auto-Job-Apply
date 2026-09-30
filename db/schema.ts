@@ -8,6 +8,7 @@ export const candidateProfiles = sqliteTable("candidate_profiles", {
   headline: text("headline").notNull().default(""),
   preferencesJson: text("preferences_json").notNull().default("{}"),
   verifiedFactsJson: text("verified_facts_json").notNull().default("{}"),
+  resumeText: text("resume_text").notNull().default(""),
   resumeObjectKey: text("resume_object_key"),
   createdAt: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
   updatedAt: text("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
@@ -49,6 +50,24 @@ export const applications = sqliteTable("applications", {
 }, (table) => [
   uniqueIndex("idx_applications_job_id").on(table.jobId),
   index("idx_applications_status").on(table.status),
+]);
+
+export const fitAssessments = sqliteTable("fit_assessments", {
+  id: text("id").primaryKey(),
+  ownerId: text("owner_id").notNull(),
+  profileId: text("profile_id").notNull().references(() => candidateProfiles.id),
+  jobId: text("job_id").notNull().references(() => jobListings.id),
+  eligible: integer("eligible", { mode: "boolean" }).notNull().default(true),
+  score: integer("score").notNull().default(0),
+  breakdownJson: text("breakdown_json").notNull().default("{}"),
+  matchedJson: text("matched_json").notNull().default("[]"),
+  gapsJson: text("gaps_json").notNull().default("[]"),
+  scorerVersion: text("scorer_version").notNull(),
+  createdAt: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+  updatedAt: text("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+}, (table) => [
+  uniqueIndex("idx_fit_assessments_owner_job").on(table.ownerId, table.jobId),
+  index("idx_fit_assessments_owner_score").on(table.ownerId, table.eligible, table.score),
 ]);
 
 export const discoveryRuns = sqliteTable("discovery_runs", {

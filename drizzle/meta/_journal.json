@@ -8,6 +8,13 @@
       "when": 1790713439462,
       "tag": "0000_perpetual_victor_mancha",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1790742586646,
+      "tag": "0001_fixed_patriot",
+      "breakpoints": true
     }
   ]
 }

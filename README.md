@@ -8,7 +8,8 @@ The current release includes:
 - Jobright and LinkedIn-alert source labels;
 - deterministic last-24-hours priority ordering;
 - a D1 schema for candidate profiles, jobs, applications, and discovery runs;
-- an ingestion API for normalized job records; and
+- an ingestion API for normalized job records;
+- an authenticated candidate profile with verified-fact fit scoring;
 - an optional Hermes Agent orchestration path with bounded subagent delegation; and
 - conservative submission guardrails.
 

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { listPriorityJobs, upsertJob } from "@/db/jobs";
+import { getChatGPTUser } from "@/app/chatgpt-auth";
 
 const jobInput = z.object({
   id: z.string().min(1).max(200),
@@ -13,13 +14,11 @@ const jobInput = z.object({
   description: z.string().max(100_000).default(""),
   postedAt: z.string().datetime().nullable(),
   discoveredAt: z.string().datetime(),
-  fitScore: z.number().int().min(0).max(100),
-  fitExplanation: z.string().max(2000).default(""),
-  status: z.enum(["discovered", "ready_to_review", "approved", "submitted", "needs_answer", "archived"]),
-  nextAction: z.string().max(300),
 });
 
 export async function GET(request: Request) {
+  const user = await getChatGPTUser();
+  if (!user) return NextResponse.json({ error: "Authentication required." }, { status: 401 });
   const url = new URL(request.url);
   const requestedLimit = Number(url.searchParams.get("limit") ?? 50);
   const limit = Number.isFinite(requestedLimit) ? Math.min(Math.max(requestedLimit, 1), 200) : 50;
@@ -33,13 +32,22 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
+  const user = await getChatGPTUser();
+  if (!user) return NextResponse.json({ error: "Authentication required." }, { status: 401 });
+
   try {
     const parsed = jobInput.safeParse(await request.json());
     if (!parsed.success) {
       return NextResponse.json({ error: "Invalid job payload", issues: parsed.error.issues }, { status: 400 });
     }
 
-    await upsertJob(parsed.data);
+    await upsertJob({
+      ...parsed.data,
+      fitScore: 0,
+      fitExplanation: "Awaiting an owner-scoped fit assessment.",
+      status: "discovered",
+      nextAction: "Complete profile and review fit summary",
+    });
     return NextResponse.json({ id: parsed.data.id, status: "stored" }, { status: 201 });
   } catch (error) {
     console.error("Unable to store job", error);
