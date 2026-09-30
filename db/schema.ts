@@ -96,6 +96,7 @@ export const fitAssessments = sqliteTable("fit_assessments", {
 
 export const discoveryRuns = sqliteTable("discovery_runs", {
   id: text("id").primaryKey(),
+  ownerId: text("owner_id").notNull().default(""),
   startedAt: text("started_at").notNull(),
   completedAt: text("completed_at"),
   status: text("status").notNull().default("running"),

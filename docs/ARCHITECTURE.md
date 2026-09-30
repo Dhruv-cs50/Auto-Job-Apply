@@ -19,7 +19,8 @@ The system helps one job seeker discover, rank, review, and track applications. 
 - `app/`: private dashboard and ingestion API.
 - `db/`: D1 schema and query boundary.
 - `lib/priority.ts`: deterministic freshness and priority policy.
-- Future `workers/discovery/`: scheduled source adapters and scoring.
+- `workers/discovery/`: policy-compliant payload adapters with provenance and timestamp confidence.
+- `app/api/discovery/import`: authenticated ingestion for authorized exports, alerts, and public ATS payloads.
 - Future `workers/browser/`: Playwright site adapters running on a controlled VM.
 
 ## Discovery sources

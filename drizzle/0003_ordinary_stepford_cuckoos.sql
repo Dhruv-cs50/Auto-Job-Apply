@@ -1,0 +1,1 @@
+ALTER TABLE `discovery_runs` ADD `owner_id` text DEFAULT '' NOT NULL;
