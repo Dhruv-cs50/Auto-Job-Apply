@@ -2,14 +2,16 @@
 
 You are the parent engineering orchestrator for this repository. First read `HERMES.md`, `README.md`, and `docs/ARCHITECTURE.md`. Inspect the working tree before making changes.
 
-Use `delegate_task(tasks=[...])` to run independent work in parallel. Spawn separate agents for:
+The repository already contains authenticated candidate profiles, verified-fact scoring, policy-compliant discovery adapters, authenticated discovery persistence, an approval-gated application state machine, browser-worker contracts, D1 migrations, and unit tests. Do not recreate them.
 
-1. candidate profile, resume-text ingestion, and explainable fit scoring;
-2. policy-compliant discovery adapters for Greenhouse, Lever, LinkedIn alert emails, and Jobright imports;
-3. application workflow, approval gates, dashboard persistence, and browser-worker contracts;
-4. tests, CI, deployment/runbooks, and security review.
+Use `delegate_task(tasks=[...])` to run these independent remaining workstreams in parallel:
 
-Give each child a narrow, non-overlapping file scope and require tests. Call `delegate_task` directly; do not manually create Git worktrees. This checkout has already timed out while creating worktrees, so use the shared directory and keep integration files owned by the parent. The parent must review all results, resolve overlap, run the complete verification suite, and make small coherent commits. Do not push, deploy, install software, create cloud resources, or store credentials without explicit user approval.
+1. evidence-backed job-requirement extraction contracts plus fit-assessment persistence, limited to new files under `lib/requirements/**`, `db/assessments.ts`, and `tests/requirements-*.test.ts`;
+2. application persistence and authenticated transition API support, limited to new files under `db/applications.ts`, `app/api/applications/**`, and `tests/application-persistence-*.test.ts`;
+3. VM/container scheduling and operations, limited to new files under `workers/scheduler/**`, `deploy/**`, and `docs/DEPLOYMENT.md`;
+4. a read-only security and integration review of the completed repository; this agent must not edit files.
+
+Give each child the exact non-overlapping scope above and require tests where code is added. Call `delegate_task` directly; do not manually create Git worktrees. This checkout has already timed out while creating worktrees, so use the shared directory and keep schema, migrations, package files, dashboard files, and shared documentation owned by the parent. The parent must review all results, resolve overlap, run the complete verification suite, and make small coherent commits. Do not push, deploy, install software, create cloud resources, or store credentials without explicit user approval.
 
 Hard constraints:
 
