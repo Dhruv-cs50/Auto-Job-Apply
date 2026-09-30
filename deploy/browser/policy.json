@@ -1,0 +1,9 @@
+{
+  "schemaVersion": 1,
+  "durableState": "d1",
+  "requirePerApplicationApproval": true,
+  "forbiddenHosts": ["linkedin.com", "*.linkedin.com"],
+  "forbiddenActions": ["invent_answer", "reuse_browser_cookie_as_discovery_source", "submit_without_current_revision_approval"],
+  "pauseAndHandOff": ["captcha", "mfa", "assessment", "legal_attestation", "demographic_question", "salary_ambiguity", "missing_answer", "site_changed"],
+  "allowedAnswerSources": ["verified_profile", "user_answer"]
+}

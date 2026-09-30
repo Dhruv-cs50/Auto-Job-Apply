@@ -1,0 +1,19 @@
+[Unit]
+Description=Isolated human-supervised browser worker
+After=docker.service network-online.target
+Wants=network-online.target
+Requires=docker.service
+ConditionPathExists=/opt/auto-job-apply/config/browser.enabled
+
+[Service]
+Type=simple
+EnvironmentFile=/opt/auto-job-apply/config/browser.env
+ExecStartPre=/usr/bin/test -s /run/secrets/auto-job-apply/browser-worker-token
+ExecStartPre=/usr/bin/test -r /opt/auto-job-apply/config/browser-policy.json
+ExecStart=/usr/bin/docker run --read-only --tmpfs /tmp:rw,noexec,nosuid,size=512m --shm-size=1g --cap-drop=ALL --security-opt=no-new-privileges --pids-limit=512 --memory=2g --cpus=2 --network=auto-job-control -e BROWSER_CONTROL_URL -e BROWSER_WORKER_TOKEN_FILE=/run/secrets/browser-worker-token -e BROWSER_POLICY_FILE=/run/config/browser-policy.json --mount type=bind,src=/run/secrets/auto-job-apply/browser-worker-token,dst=/run/secrets/browser-worker-token,readonly --mount type=bind,src=/opt/auto-job-apply/config/browser-policy.json,dst=/run/config/browser-policy.json,readonly ${BROWSER_IMAGE}
+Restart=on-failure
+RestartSec=30
+TimeoutStopSec=45
+
+[Install]
+WantedBy=multi-user.target

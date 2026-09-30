@@ -1,0 +1,8 @@
+**
+!workers/
+!workers/scheduler/
+!workers/scheduler/lib.mjs
+!workers/scheduler/run.mjs
+!deploy/
+!deploy/discovery/
+!deploy/discovery/Dockerfile

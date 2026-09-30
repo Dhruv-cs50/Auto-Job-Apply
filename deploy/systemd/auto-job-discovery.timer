@@ -1,0 +1,12 @@
+[Unit]
+Description=Hourly policy-compliant job discovery schedule
+
+[Timer]
+OnCalendar=hourly
+RandomizedDelaySec=5m
+Persistent=true
+AccuracySec=1m
+Unit=auto-job-discovery.service
+
+[Install]
+WantedBy=timers.target

@@ -1,0 +1,16 @@
+[Unit]
+Description=Trigger one idempotent job discovery run
+After=docker.service network-online.target
+Wants=network-online.target
+Requires=docker.service
+ConditionPathExists=/opt/auto-job-apply/config/discovery.enabled
+
+[Service]
+Type=oneshot
+EnvironmentFile=/opt/auto-job-apply/config/discovery.env
+ExecStartPre=/usr/bin/test -s /run/secrets/auto-job-apply/scheduler-token
+ExecStart=/usr/bin/docker run --rm --read-only --cap-drop=ALL --security-opt=no-new-privileges --pids-limit=64 --memory=256m --cpus=0.50 --network=auto-job-control -e SCHEDULER_TRIGGER_URL -e SCHEDULER_ID -e SCHEDULER_SLOT_MINUTES -e SCHEDULER_TIMEOUT_MS -e SCHEDULER_MAX_ATTEMPTS -e SCHEDULER_TOKEN_FILE=/run/secrets/scheduler-token --mount type=bind,src=/run/secrets/auto-job-apply/scheduler-token,dst=/run/secrets/scheduler-token,readonly ${DISCOVERY_IMAGE}
+TimeoutStartSec=180
+
+[Install]
+WantedBy=multi-user.target
