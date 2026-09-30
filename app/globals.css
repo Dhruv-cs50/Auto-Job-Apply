@@ -137,6 +137,7 @@ h1 { font-size: clamp(1.8rem, 3vw, 2.45rem); letter-spacing: -.045em; line-heigh
 .next-cell { display: grid; gap: .13rem; min-width: 130px; }
 .next-cell strong { font-size: .72rem; font-weight: 650; }
 .next-cell span { color: #8a97a3; font-size: .66rem; }
+.empty-table { color: var(--muted-foreground); font-size: .78rem; padding: 2rem !important; text-align: center; }
 
 .right-column { align-content: start; display: grid; gap: .85rem; }
 .compact { padding-bottom: .8rem; }

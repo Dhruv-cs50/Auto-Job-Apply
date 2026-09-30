@@ -15,6 +15,8 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
+import { getChatGPTUser } from "@/app/chatgpt-auth";
+import { listApplications } from "@/db/applications";
 import { listPriorityJobs } from "@/db/jobs";
 import {
   Table,
@@ -25,86 +27,33 @@ import {
   TableRow,
 } from "@/components/ui/table";
 
-const demoApplications = [
-  {
-    company: "Aurora Mobility",
-    role: "Data Scientist, Forecasting",
-    location: "San Francisco, CA",
-    source: "Jobright",
-    posted: "2h ago",
-    fresh: true,
-    score: 94,
-    status: "Ready to review",
-    tone: "review",
-    next: "Review answers",
-  },
-  {
-    company: "Northstar Transit",
-    role: "Machine Learning Engineer",
-    location: "Remote · US",
-    source: "LinkedIn alert",
-    posted: "5h ago",
-    fresh: true,
-    score: 89,
-    status: "Approved",
-    tone: "approved",
-    next: "Queued for 10:30 AM",
-  },
-  {
-    company: "Cityflow Labs",
-    role: "Applied Scientist",
-    location: "Seattle, WA",
-    source: "Company site",
-    posted: "19h ago",
-    fresh: true,
-    score: 86,
-    status: "Submitted",
-    tone: "submitted",
-    next: "Track response",
-  },
-  {
-    company: "Civic Route",
-    role: "Analytics Engineer",
-    location: "Oakland, CA",
-    source: "Jobright",
-    posted: "1d ago",
-    fresh: false,
-    score: 78,
-    status: "Needs answer",
-    tone: "blocked",
-    next: "Work authorization",
-  },
-  {
-    company: "Vector Grid",
-    role: "Operations Research Analyst",
-    location: "San Jose, CA",
-    source: "LinkedIn alert",
-    posted: "2d ago",
-    fresh: false,
-    score: 74,
-    status: "Discovered",
-    tone: "discovered",
-    next: "Review fit summary",
-  },
-];
-
-const pipeline = [
-  { label: "Discovered", count: 48, percent: 100 },
-  { label: "Strong fit", count: 18, percent: 38 },
-  { label: "Approved", count: 9, percent: 19 },
-  { label: "Submitted", count: 6, percent: 13 },
-];
-
 function StatusBadge({ tone, children }: { tone: string; children: React.ReactNode }) {
   return <Badge className={`status-badge status-${tone}`}>{children}</Badge>;
 }
 
 const statusPresentation: Record<string, { label: string; tone: string }> = {
   discovered: { label: "Discovered", tone: "discovered" },
-  ready_to_review: { label: "Ready to review", tone: "review" },
+  draft: { label: "Draft", tone: "review" },
+  ready_for_review: { label: "Ready to review", tone: "review" },
   approved: { label: "Approved", tone: "approved" },
+  queued: { label: "Queued", tone: "approved" },
+  in_progress: { label: "In progress", tone: "approved" },
+  paused: { label: "Paused", tone: "blocked" },
   submitted: { label: "Submitted", tone: "submitted" },
-  needs_answer: { label: "Needs answer", tone: "blocked" },
+  failed: { label: "Failed", tone: "blocked" },
+  withdrawn: { label: "Withdrawn", tone: "discovered" },
+};
+
+const nextStepByStatus: Record<string, string> = {
+  draft: "Complete application answers",
+  ready_for_review: "Approve the exact answers",
+  approved: "Queue for the browser worker",
+  queued: "Waiting for the browser worker",
+  in_progress: "Browser worker is running",
+  paused: "Resolve the human handoff",
+  submitted: "Track the employer response",
+  failed: "Review the failure",
+  withdrawn: "No further action",
 };
 
 const sourcePresentation: Record<string, string> = {
@@ -121,10 +70,21 @@ function postedLabel(postedAt: string | null) {
   return ageHours < 24 ? `${ageHours || 1}h ago` : `${Math.floor(ageHours / 24)}d ago`;
 }
 
+export const dynamic = "force-dynamic";
+
 export default async function Home() {
-  const storedJobs = await listPriorityJobs(25).catch(() => []);
-  const applications = storedJobs.length
-    ? storedJobs.map((job) => ({
+  const user = await getChatGPTUser();
+  const [storedJobs, storedApplications] = await Promise.all([
+    listPriorityJobs(25).catch(() => []),
+    user ? listApplications(user.userId, 200).catch(() => []) : Promise.resolve([]),
+  ]);
+  const applicationByJobId = new Map(storedApplications.map((application) => [application.jobId, application]));
+  const applications = storedJobs.map((job) => {
+    const savedApplication = applicationByJobId.get(job.id);
+    const status = savedApplication?.status ?? "discovered";
+    const presentation = statusPresentation[status] ?? statusPresentation.discovered;
+    return {
+        id: job.id,
         company: job.company,
         role: job.title,
         location: job.location,
@@ -132,16 +92,37 @@ export default async function Home() {
         posted: postedLabel(job.postedAt),
         fresh: job.fresh,
         score: job.fitScore,
-        status: statusPresentation[job.status]?.label ?? job.status,
-        tone: statusPresentation[job.status]?.tone ?? "discovered",
-        next: job.nextAction,
-      }))
-    : demoApplications;
+        status: presentation.label,
+        statusKey: status,
+        tone: presentation.tone,
+        next: nextStepByStatus[status] ?? job.nextAction,
+      };
+  });
+  const freshCount = applications.filter((job) => job.fresh).length;
+  const reviewedCount = storedApplications.filter((application) => application.status === "ready_for_review").length;
+  const pausedCount = storedApplications.filter((application) => application.status === "paused").length;
+  const approvedCount = storedApplications.filter((application) => ["approved", "queued", "in_progress", "paused"].includes(application.status)).length;
+  const submittedCount = storedApplications.filter((application) => application.status === "submitted").length;
+  const pipeline = [
+    { label: "Discovered", count: applications.length },
+    { label: "Strong fit", count: applications.filter((job) => job.score >= 85).length },
+    { label: "Approved or active", count: approvedCount },
+    { label: "Submitted", count: submittedCount },
+  ].map((step) => ({
+    ...step,
+    percent: applications.length ? Math.round(step.count / applications.length * 100) : 0,
+  }));
+  const dateLabel = new Intl.DateTimeFormat("en-US", {
+    weekday: "long",
+    month: "long",
+    day: "numeric",
+    timeZone: "America/Los_Angeles",
+  }).format(new Date());
   const stats = [
-    { label: "Fresh in last 24h", value: String(applications.filter((job) => job.fresh).length), note: "Pinned first", icon: Clock3 },
+    { label: "Fresh in last 24h", value: String(freshCount), note: "Pinned first", icon: Clock3 },
     { label: "Strong matches", value: String(applications.filter((job) => job.score >= 85).length), note: "Fit score 85+", icon: Sparkles },
-    { label: "Awaiting review", value: String(applications.filter((job) => ["Ready to review", "Needs answer"].includes(job.status)).length), note: "Needs attention", icon: CalendarClock },
-    { label: "Submitted", value: String(applications.filter((job) => job.status === "Submitted").length), note: "Tracked", icon: FileCheck2 },
+    { label: "Awaiting review", value: String(reviewedCount), note: "Needs approval", icon: CalendarClock },
+    { label: "Submitted", value: String(submittedCount), note: "Tracked", icon: FileCheck2 },
   ];
   return (
     <main className="min-h-screen bg-background text-foreground">
@@ -163,7 +144,7 @@ export default async function Home() {
           <nav>
             <a className="nav-item nav-active" href="#overview"><CircleDot /> Overview</a>
             <a className="nav-item" href="#applications">
-              <BriefcaseBusiness /> Applications <span className="nav-count">7</span>
+              <BriefcaseBusiness /> Applications <span className="nav-count">{storedApplications.length}</span>
             </a>
             <a className="nav-item" href="#schedule"><CalendarClock /> Schedule</a>
             <a className="nav-item" href="/profile"><FileCheck2 /> Candidate profile</a>
@@ -178,10 +159,12 @@ export default async function Home() {
         <section className="workspace" id="overview">
           <div className="workspace-heading">
             <div>
-              <p className="eyebrow">Tuesday, September 29</p>
+              <p className="eyebrow">{dateLabel}</p>
               <h1>Your application pipeline</h1>
               <p className="heading-copy">
-                Jobright and LinkedIn alerts found 6 new strong matches. Fresh roles are ranked first.
+                {applications.length
+                  ? `${freshCount} fresh role${freshCount === 1 ? "" : "s"} found in the last 24 hours. Fresh roles are ranked first.`
+                  : "No jobs have been imported yet. Connect an approved discovery source to begin."}
               </p>
             </div>
             <div className="next-run">
@@ -224,7 +207,7 @@ export default async function Home() {
                   </TableHeader>
                   <TableBody>
                     {applications.map((application) => (
-                      <TableRow key={`${application.company}-${application.role}`}>
+                      <TableRow key={application.id}>
                         <TableCell>
                           <div className="role-cell">
                             <strong>{application.role}</strong>
@@ -248,6 +231,13 @@ export default async function Home() {
                         <TableCell><div className="next-cell"><strong>{application.next}</strong><span>Open details</span></div></TableCell>
                       </TableRow>
                     ))}
+                    {!applications.length && (
+                      <TableRow>
+                        <TableCell className="empty-table" colSpan={5}>
+                          No discovered jobs yet. Import an approved Jobright export, LinkedIn alert, Greenhouse board, or Lever feed.
+                        </TableCell>
+                      </TableRow>
+                    )}
                   </TableBody>
                 </Table>
               </div>
@@ -256,12 +246,12 @@ export default async function Home() {
             <aside className="right-column">
               <section className="panel attention-panel">
                 <div className="panel-heading compact">
-                  <div><h2>Needs attention</h2><p>3 items are holding the queue.</p></div>
+                  <div><h2>Needs attention</h2><p>{reviewedCount + pausedCount} items need a decision.</p></div>
                   <span className="attention-icon"><AlertTriangle size={17} /></span>
                 </div>
                 <div className="attention-list">
-                  <button type="button"><span><strong>Review top match</strong><small>Aurora Mobility · 94 fit</small></span><ChevronRight /></button>
-                  <button type="button"><span><strong>Answer required question</strong><small>Civic Route · work authorization</small></span><ChevronRight /></button>
+                  <button type="button"><span><strong>Review applications</strong><small>{reviewedCount} waiting for exact-answer approval</small></span><ChevronRight /></button>
+                  <button type="button"><span><strong>Resolve human handoffs</strong><small>{pausedCount} paused for your input</small></span><ChevronRight /></button>
                   <button type="button"><span><strong>Connect discovery sources</strong><small>Jobright and LinkedIn alerts</small></span><ChevronRight /></button>
                 </div>
               </section>

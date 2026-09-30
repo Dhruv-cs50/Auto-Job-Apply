@@ -1,8 +1,8 @@
 [Unit]
-Description=Hourly policy-compliant job discovery schedule
+Description=Daily policy-compliant job discovery schedule
 
 [Timer]
-OnCalendar=hourly
+OnCalendar=*-*-* 07:00:00 America/Los_Angeles
 RandomizedDelaySec=5m
 Persistent=true
 AccuracySec=1m

@@ -15,13 +15,13 @@ export function schedulerConfig(env = process.env) {
   const triggerUrl = new URL(required(env, "SCHEDULER_TRIGGER_URL"));
   if (triggerUrl.protocol !== "https:" && env.SCHEDULER_ALLOW_INSECURE_LOCALHOST !== "1") throw new Error("SCHEDULER_TRIGGER_URL must use HTTPS");
   if (triggerUrl.protocol !== "https:" && !["localhost", "127.0.0.1", "::1"].includes(triggerUrl.hostname)) throw new Error("Insecure scheduler URLs are limited to localhost tests");
-  const scheduleId = env.SCHEDULER_ID ?? "hourly-discovery";
+  const scheduleId = env.SCHEDULER_ID ?? "daily-discovery";
   if (!/^[a-z0-9][a-z0-9_-]{0,63}$/.test(scheduleId)) throw new Error("SCHEDULER_ID has an invalid format");
   return {
     triggerUrl,
     tokenFile: required(env, "SCHEDULER_TOKEN_FILE"),
     scheduleId,
-    slotMinutes: integer(env.SCHEDULER_SLOT_MINUTES ?? "60", "SCHEDULER_SLOT_MINUTES", 1, 1440),
+    slotMinutes: integer(env.SCHEDULER_SLOT_MINUTES ?? "1440", "SCHEDULER_SLOT_MINUTES", 1, 1440),
     timeoutMs: integer(env.SCHEDULER_TIMEOUT_MS ?? "30000", "SCHEDULER_TIMEOUT_MS", 1000, 120000),
     attempts: integer(env.SCHEDULER_MAX_ATTEMPTS ?? "3", "SCHEDULER_MAX_ATTEMPTS", 1, 5),
   };
