@@ -13,7 +13,7 @@ export type JobRequirements = {
   degreeKeywords: string[];
   location: string;
   workplaceType: "remote" | "hybrid" | "onsite" | "unknown";
-  requiresExistingAuthorization: boolean;
+  requiresExistingAuthorization: boolean | null;
   sponsorshipAvailable: boolean | null;
 };
 
@@ -48,7 +48,7 @@ export function assessCandidateFit(
   const matched: string[] = [];
   const gaps: string[] = [];
 
-  if (job.requiresExistingAuthorization && facts.workAuthorization === "not_authorized") {
+  if (job.requiresExistingAuthorization === true && facts.workAuthorization === "not_authorized") {
     gaps.push("The role requires existing work authorization.");
   }
   if (facts.requiresSponsorship === true && job.sponsorshipAvailable === false) {
