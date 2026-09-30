@@ -39,8 +39,16 @@ export const jobListings = sqliteTable("job_listings", {
 
 export const applications = sqliteTable("applications", {
   id: text("id").primaryKey(),
+  ownerId: text("owner_id").notNull().default(""),
   jobId: text("job_id").notNull().references(() => jobListings.id),
   status: text("status").notNull().default("draft"),
+  answerSetJson: text("answer_set_json").notNull().default("{}"),
+  answerRevision: integer("answer_revision").notNull().default(0),
+  approvedAnswerRevision: integer("approved_answer_revision"),
+  approvalId: text("approval_id"),
+  idempotencyKey: text("idempotency_key"),
+  blockedReason: text("blocked_reason"),
+  lastErrorSummary: text("last_error_summary"),
   approvedAt: text("approved_at"),
   submittedAt: text("submitted_at"),
   confirmationReference: text("confirmation_reference"),
@@ -50,6 +58,22 @@ export const applications = sqliteTable("applications", {
 }, (table) => [
   uniqueIndex("idx_applications_job_id").on(table.jobId),
   index("idx_applications_status").on(table.status),
+  index("idx_applications_owner_status").on(table.ownerId, table.status),
+  uniqueIndex("idx_applications_idempotency_key").on(table.idempotencyKey),
+]);
+
+export const applicationEvents = sqliteTable("application_events", {
+  id: text("id").primaryKey(),
+  ownerId: text("owner_id").notNull(),
+  applicationId: text("application_id").notNull().references(() => applications.id),
+  eventType: text("event_type").notNull(),
+  fromStatus: text("from_status").notNull(),
+  toStatus: text("to_status").notNull(),
+  detailJson: text("detail_json").notNull().default("{}"),
+  createdAt: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+}, (table) => [
+  index("idx_application_events_application_created").on(table.applicationId, table.createdAt),
+  index("idx_application_events_owner_created").on(table.ownerId, table.createdAt),
 ]);
 
 export const fitAssessments = sqliteTable("fit_assessments", {
